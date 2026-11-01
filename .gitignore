@@ -1,0 +1,45 @@
+# ---- Data: keep the tree, not the payload
+data/**
+!data/**/
+!data/**/.gitkeep
+!data/**/README.md
+
+# Structures and trajectories are regenerated, never committed
+*.pdb
+*.cif
+*.mmcif
+*.pdb.gz
+*.a3m
+*.sto
+
+# ---- Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.conda/
+
+# ---- Jupyter
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/*
+
+# ---- Models / big binaries
+*.pt
+*.pth
+*.ckpt
+*.npy
+*.npz
+*.h5
+
+# ---- OS / editor
+.DS_Store
+.vscode/
+.idea/
+*.swp
+
+# ---- Cluster logs
+*.o[0-9]*
+*.e[0-9]*
+slurm-*.out
