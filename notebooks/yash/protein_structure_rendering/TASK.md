@@ -57,7 +57,7 @@ the "strongest / weakest responder" panels.
 ```bash
 conda create -n cair_pymol -c conda-forge python=3.11 pymol-open-source pandas numpy
 conda activate cair_pymol
-cd yash/protein_structure_rendering/inputs/sixway/ubq_human_L67S
+cd notebooks/yash/protein_structure_rendering/inputs/sixway/ubq_human_L67S
 pymol load_sixway.pml          # must be run from inside the folder (paths are relative)
 ```
 
@@ -148,7 +148,7 @@ same house style, camera and color scale. These are the slides the talk is built
 Save scripts in `protein_structure_rendering/` (commit them). Save images in
 `protein_structure_rendering/outputs/` (PNG; git-ignored unless the team decides otherwise). Write down any choice that changes how a
 figure reads (camera, color range, which residues are shown) in your notebook
-`yash/yash.ipynb`.
+`notebooks/yash/yash.ipynb`.
 
 ## 5. Things that make a render misleading (avoid all of them)
 

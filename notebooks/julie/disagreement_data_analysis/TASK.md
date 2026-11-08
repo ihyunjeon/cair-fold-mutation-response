@@ -165,16 +165,16 @@ in `outputs/noise_floor.csv`; it sets the white point of the color scale.
 ```bash
 conda create -n cair -c conda-forge python=3.11 numpy pandas biopython scipy matplotlib jupyter
 conda activate cair
-cd julie            # work from your folder; your notebook is julie/julie.ipynb
+cd notebooks/julie  # work from your folder; your notebook is notebooks/julie/julie.ipynb
 jupyter lab julie.ipynb
 ```
 
-In the notebook (paths are relative to `julie/`):
+In the notebook (paths are relative to `notebooks/julie/`):
 
 ```python
 import os
 os.environ["OMP_NUM_THREADS"] = "1"; os.environ["MKL_NUM_THREADS"] = "1"  # before numpy
-import sys; sys.path.append("../src")          # repo-root src/
+import sys; sys.path.append("../../src")       # repo-root src/
 from geometry import load_ca, superpose, locality_profile, noise_floor
 import pandas as pd
 IN = "disagreement_data_analysis/inputs/"
@@ -187,7 +187,7 @@ Pin BLAS to one thread (the `OMP_NUM_THREADS` line). Small-matrix numpy work is 
 thousands of times slower on a laptop.
 
 Code that more than one person will use goes in the repo-root `src/`. Analysis goes in your
-notebook (`julie/julie.ipynb`). Save outputs to `disagreement_data_analysis/outputs/`
+notebook (`notebooks/julie/julie.ipynb`). Save outputs to `disagreement_data_analysis/outputs/`
 (git-ignored). Findings (row counts, surprises, decisions) go in the repo-root
 `data/README.md` in the same commit that found them.
 
