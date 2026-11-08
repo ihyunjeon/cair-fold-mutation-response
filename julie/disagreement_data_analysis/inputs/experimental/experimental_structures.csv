@@ -1,0 +1,8 @@
+pdb_id,protein,role,file,source
+5HDY,pdz3_rat,WT,experimental/5HDY.pdb,"RCSB 5HDY chain A altloc A, resi 302-402"
+5HET,pdz3_rat,G330T,experimental/5HET.pdb,"RCSB 5HET chain A altloc A, resi 302-402"
+5HF4,pdz3_rat,H372A,experimental/5HF4.pdb,"RCSB 5HF4 chain A altloc A, resi 302-402"
+1UBQ,ubq_human,WT,experimental/1UBQ.pdb,"RCSB 1UBQ chain A altloc A, resi 1-76"
+4PIG,ubq_human,K11S,experimental/4PIG.pdb,"RCSB 4PIG chain A altloc A, resi 1-76"
+4PIH,ubq_human,K33S,experimental/4PIH.pdb,"RCSB 4PIH chain A altloc A, resi 1-76"
+5OXI,ubq_human,L67S,experimental/5OXI.pdb,"RCSB 5OXI chain A altloc A, resi 1-76"

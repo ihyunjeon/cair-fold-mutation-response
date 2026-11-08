@@ -1,0 +1,13 @@
+{
+ "seq_id": "pdz3_rat__E373V",
+ "rep": 1,
+ "predictor": "esmfold",
+ "model": "esmfold_v1",
+ "ptm": 0.8750589489936829,
+ "mean_plddt": 91.4002537727356,
+ "num_recycles": 4,
+ "device": "cpu",
+ "esm_dtype": "bf16",
+ "runtime_s": 32.27,
+ "torch": "2.13.0"
+}

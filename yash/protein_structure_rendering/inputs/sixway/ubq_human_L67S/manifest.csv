@@ -1,0 +1,7 @@
+file,source,bfactor,site_residue,mean_plddt
+exp_wt.pdb,"RCSB 1UBQ chain A altloc A, resi 1-76",crystallographic B,L,
+exp_mut.pdb,"RCSB 5OXI chain A altloc A, resi 1-76",crystallographic B,S,
+af_wt.pdb,ubq_human__WT|alphafold2|model_1_ptm|s0|r1,pLDDT 0-100,L,95.03
+af_mut.pdb,ubq_human__L67S|alphafold2|model_1_ptm|s0|r1,pLDDT 0-100,S,95.11
+esm_wt.pdb,ubq_human__WT|esmfold|esmfold_v1|s0|r1,pLDDT 0-100,L,90.54
+esm_mut.pdb,ubq_human__L67S|esmfold|esmfold_v1|s0|r1,pLDDT 0-100,S,90.95

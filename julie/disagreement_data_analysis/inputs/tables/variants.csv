@@ -1,0 +1,14 @@
+protein,variant,pos,set,fitness,burial,rsa,DMS_score,DMS_score_bin,dms_id,pdb_wt,pdb_mut,note
+ubq_yeast,I23N,23,dms_stratified,deleterious,buried,0.0,-0.6641672317696059,0.0,RL40A_YEAST_Roscoe_2013,1UBQ,,
+ubq_yeast,K48R,48,dms_stratified,deleterious,exposed,0.399,-0.92809366037037,0.0,RL40A_YEAST_Roscoe_2013,1UBQ,,
+ubq_yeast,T55Q,55,dms_stratified,neutral,buried,0.18,9.16224201443275e-05,1.0,RL40A_YEAST_Roscoe_2013,1UBQ,,
+ubq_yeast,N25Q,25,dms_stratified,neutral,exposed,0.262,-0.013718750942313,1.0,RL40A_YEAST_Roscoe_2013,1UBQ,,
+pdz3_rat,A375D,375,dms_stratified,deleterious,buried,0.0,-0.48331,0.0,DLG4_RAT_McLaughlin_2012,5HDY,,
+pdz3_rat,E373V,373,dms_stratified,deleterious,exposed,0.572,-0.2184,1.0,DLG4_RAT_McLaughlin_2012,5HDY,,
+pdz3_rat,S350C,350,dms_stratified,neutral,buried,0.177,0.061008,1.0,DLG4_RAT_McLaughlin_2012,5HDY,,
+pdz3_rat,G333I,333,dms_stratified,neutral,exposed,0.306,0.09938,1.0,DLG4_RAT_McLaughlin_2012,5HDY,,
+pdz3_rat,G330T,330,experimental_pair,deleterious,buried,0.063,-0.55214,0.0,DLG4_RAT_McLaughlin_2012,5HDY,5HET,binding-groove beta2-beta3 loop; same lab/construct as WT
+pdz3_rat,H372A,372,experimental_pair,deleterious,exposed,0.378,-1.3442,0.0,DLG4_RAT_McLaughlin_2012,5HDY,5HF4,alpha2 His372 (ligand pocket); same lab/construct as WT
+ubq_human,L67S,67,experimental_pair,,buried,0.0,,,,1UBQ,5OXI,C-terminally retracted mutant; real backbone change expected
+ubq_human,K33S,33,experimental_pair,,exposed,0.473,,,,1UBQ,4PIH,surface Lys; near-zero change expected (control)
+ubq_human,K11S,11,experimental_pair,,exposed,0.418,,,,1UBQ,4PIG,surface Lys; near-zero change expected (control)

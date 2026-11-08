@@ -1,0 +1,13 @@
+{
+ "seq_id": "pdz3_rat__S350C",
+ "rep": 1,
+ "predictor": "esmfold",
+ "model": "esmfold_v1",
+ "ptm": 0.8772052526473999,
+ "mean_plddt": 91.73085689544678,
+ "num_recycles": 4,
+ "device": "cpu",
+ "esm_dtype": "bf16",
+ "runtime_s": 37.86,
+ "torch": "2.13.0"
+}

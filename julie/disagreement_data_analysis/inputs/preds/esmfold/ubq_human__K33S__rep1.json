@@ -1,0 +1,13 @@
+{
+ "seq_id": "ubq_human__K33S",
+ "rep": 1,
+ "predictor": "esmfold",
+ "model": "esmfold_v1",
+ "ptm": 0.825904369354248,
+ "mean_plddt": 90.4886245727539,
+ "num_recycles": 4,
+ "device": "cpu",
+ "esm_dtype": "bf16",
+ "runtime_s": 20.07,
+ "torch": "2.13.0"
+}

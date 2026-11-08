@@ -1,0 +1,4 @@
+# Dev inputs for this member ARE tracked (exception to the repo-wide *.pdb ignore).
+!*.pdb
+# Rendered images and analysis outputs stay local.
+**/outputs/

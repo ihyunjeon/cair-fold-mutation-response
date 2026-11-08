@@ -1,0 +1,13 @@
+{
+ "seq_id": "ubq_yeast__K48R",
+ "rep": 1,
+ "predictor": "esmfold",
+ "model": "esmfold_v1",
+ "ptm": 0.8252080678939819,
+ "mean_plddt": 90.20891785621643,
+ "num_recycles": 4,
+ "device": "cpu",
+ "esm_dtype": "bf16",
+ "runtime_s": 18.47,
+ "torch": "2.13.0"
+}
