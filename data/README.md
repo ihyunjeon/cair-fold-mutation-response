@@ -80,7 +80,7 @@ bit-identical coordinates (max C-alpha difference 0.000 A, 9 pairs, subset_v0). 
 "replicate folds" noise floor is therefore exactly 0 for ESMFold and is only meaningful
 for AF2 (seed/model spread). The noise-floor milestone needs an ESMFold-appropriate
 definition before week 7 is called done: for example, spread over recycle count, or the
-AF2-style floor applied to both predictors. **Open decision for the lead.**
+AF2-style floor applied to both predictors. **Decided 2026-11-16 — see below.**
 
 ### Noise floor (TASK Step 2) — Julie, 2026-11-13, dev subset `subset_v0`
 
@@ -98,3 +98,65 @@ AF2-style floor applied to both predictors. **Open decision for the lead.**
   which WT folds are compared (same model, different seed).
 - Open question: which column of `noise_floor.csv` is the floor value for the
   rendering color scale.
+
+### 2026-11-16: the noise floor is recycle convergence, scored on the core
+
+**The floor definition (closes the open decision above).** The only mutation-free spread
+that exists for *both* predictors is **recycle convergence**: refold the same sequence at
+increasing recycle counts and measure the C-alpha RMSD between consecutive steps. AF2's
+seed floor has no ESMFold counterpart (ESMFold has no seed), and AF2's model-to-model
+spread is not a floor at all — five models are five different predictors. `pipeline/
+noise_floor.py` computes all six frames and marks which are available.
+
+Quote `rmsd_plateau_max` (the worst consecutive step in the second half of the sweep),
+not `rmsd_mean`. The mean averages in the early steps, which are nowhere near converged,
+and overstates the floor by roughly an order of magnitude.
+
+**Answering Julie's open question above** (which column is "the" floor for the rendering
+colour scale): use `rmsd_plateau_max` from `floors_core.csv`, per construct. Her 1e-15 A
+observation is right and the 1e-6 A clamp is the right call — PDB coordinates carry three
+decimals, so nothing below ~1.7e-3 A is measurable and anything smaller is superposition
+rounding. Her `subset_v0` AF2 row (one seed pair, `ubq_human` only) is a seed floor, which
+exists for AF2 but has no ESMFold counterpart, so it cannot be the shared scale; it stays
+in the ladder as its own rung.
+
+**The C-terminal tail contaminates every ubiquitin number.** `ubq_yeast` looked
+non-convergent — late steps oscillating 0.05-0.20 A instead of decaying. It is not the
+fold. At the worst late step (recycle 5->6, global RMSD 0.2012 A) residues 76 and 75 move
+1.297 A and 1.124 A while residues 1-71 move 0.0186 A RMS. That is ubiquitin's flexible
+C-terminal tail (72-76) swinging about 1 A between recycles *regardless of sequence*.
+PDZ3 has no such feature and is unaffected.
+
+So `noise_floor.py` takes `--exclude-tail N`: superposition still uses the whole chain,
+only the RMSD scoring is restricted. **Use `--exclude-tail 5` for both ubiquitins, 0 for
+PDZ3.** Two tables are kept side by side, `floors.csv` (global) and `floors_core.csv`
+(core), so the contamination stays visible rather than being quietly cropped out.
+
+| construct | core floor | global floor | median core mutation response | ratio |
+|---|---|---|---|---|
+| `ubq_yeast` | 0.0353 A | 0.2012 A | 0.1456 A | 4.1x |
+| `pdz3_rat` | 0.0104 A | 0.3372 A | 0.1580 A | 15.2x |
+| `ubq_human` | 0.0044 A | 0.1343 A | — | — |
+
+ESMFold's *replicate* floor stays exactly 0.0000 A for all three (3 pairs each), as
+before. `ubq_yeast`'s core steps still drift slightly upward after recycle 4
+(0.0101 -> 0.0186 -> 0.0248 -> 0.0353), so 0.0353 A is a conservative drift amplitude,
+not a settled residual — worth one line on the limitations slide.
+
+**This is not just a floor correction; it changes the headline result.** Dropping the
+tail sharpens the ubiquitin DMS correlation from rho = -0.254 (p = 0.012) to
+**rho = -0.344 (p = 5.7e-4)** and leaves PDZ3 alone (-0.439 -> -0.432), exactly as
+predicted. Across the 97 `ubq_yeast` mutants the median tail RMS is 1.1370 A against a
+core median of 0.1456 A — the global RMSD we had been quoting for ubiquitin was mostly
+tether, not fold. This is also why the 8 A shell displacement beat global RMSD for
+ubiquitin earlier (rho = -0.482): the shell metric was already excluding the tail.
+
+**ESMFold stays on the laptop.** Its folds are all CPU/bf16. `run_esmfold.py` skips any
+output that already exists, so running the arm on a GPU node would fold only the gaps, at
+a different device and precision, and put a hardware difference inside the replicate
+floor. The recycle sweep runs locally too. The cluster runs the AF2 arm only.
+
+**Hoffman2 scheduler.** The cluster moved to Slurm on 2026-11-05 and a Grid Engine GPU
+job submitted after that date never dispatches. Do not pass `-p/--partition` or `--qos`:
+`pi_kappel` owns nodes, so Slurm routes `-A pi_kappel` to `pi_shared`/`pi_shared24`
+(24 h, 4 concurrent GPUs) by itself, and `-p campus` is rejected. See `hoffman2/README.md`.

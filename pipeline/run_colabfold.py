@@ -9,6 +9,17 @@ Model policy:
   mutants       -> --mut-models models (default 1 = model_1), seed 0
 Comparisons in the analysis must pair like with like (mutant model_k seed_s vs WT model_k seed_s).
 
+Noise floor: AF2's only inference-time randomness is the seed, which selects the MSA
+cluster draw and masking. --wt-seeds N therefore gives the floor; the spread ACROSS
+models is a separate, larger reference line, not a floor. Dropout stays off (AF2
+default). Recycle early stopping is off for monomer models (alphafold2_ptm resolves
+recycle_early_stop_tolerance to 0.0), so all 3 recycles always run and recycle count is
+not a source of seed-to-seed variance.
+
+--save-recycles writes the structure at each recycle for WT folds, giving the
+recycle-convergence floor -- the one floor definition that also exists for ESMFold
+(run_esmfold.py --recycle-sweep), which has no seed.
+
 No templates, no Amber relax, 3 recycles.
 
 Step 1  python run_colabfold.py --run-dir R --step msa      (needs internet, 1 query/construct)
@@ -17,6 +28,7 @@ Step 2  python run_colabfold.py --run-dir R --step fold     (offline; laptop CPU
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
 from pathlib import Path
 
@@ -41,7 +53,13 @@ def msa_step(run: Path, colabfold_batch: str) -> None:
 
 
 def build_mutant_a3m(run: Path) -> Path:
-    """Copy each WT a3m with the query row (and its header) replaced by the mutant."""
+    """Copy each WT a3m with the query row (and its header) replaced by the mutant.
+
+    Writes atomically (temp file + os.replace), because every shard of a job array calls
+    this on the FULL sequence list. Without that, two tasks writing the same a3m at once
+    can let a third read a half-written alignment and fold a truncated MSA, which would
+    look like a quiet scientific result rather than the I/O race it is.
+    """
     seqs = pd.read_csv(run / "sequences.csv")
     src = run / "colabfold" / "msa_wt"
     dst = run / "colabfold" / "a3m"
@@ -59,19 +77,26 @@ def build_mutant_a3m(run: Path) -> Path:
             raise ValueError(f"{s.seq_id}: {ndiff} differences between WT query row and mutant")
         lines[qi] = f">{s.seq_id}"
         lines[qi + 1] = s.sequence
-        (dst / f"{s.seq_id}.a3m").write_text("\n".join(lines) + "\n")
+        final = dst / f"{s.seq_id}.a3m"
+        body = "\n".join(lines) + "\n"
+        if final.exists() and final.read_text() == body:
+            continue                       # already correct; leave it alone
+        tmp = final.with_suffix(f".a3m.tmp.{os.getpid()}")
+        tmp.write_text(body)
+        os.replace(tmp, final)             # atomic within a filesystem
     return dst
 
 
 def fold_step(run: Path, colabfold_batch: str, data: str, wt_seeds: int, mut_models: int,
               wt_models: int = 5, max_msa: str | None = None, shard: str = "0/1",
-              groups: str = "wt,mut") -> None:
+              groups: str = "wt,mut", save_recycles: bool = False) -> None:
     a3m = build_mutant_a3m(run)
     seqs = pd.read_csv(run / "sequences.csv")
     k, n = map(int, shard.split("/"))          # run every n-th sequence starting at k
     seqs = seqs.iloc[k::n]
     for group, sel, extra in [
-        ("wt", seqs.variant == "WT", ["--num-models", str(wt_models), "--num-seeds", str(wt_seeds)]),
+        ("wt", seqs.variant == "WT", ["--num-models", str(wt_models), "--num-seeds", str(wt_seeds)]
+                                     + (["--save-recycles"] if save_recycles else [])),
         ("mut", seqs.variant != "WT", ["--num-models", str(mut_models), "--num-seeds", "1"]),
     ]:
         if not sel.any() or group not in groups.split(","):
@@ -100,12 +125,16 @@ def main() -> None:
     ap.add_argument("--max-msa", default=None, help="e.g. 512:1024 -- dev subset on CPU only")
     ap.add_argument("--groups", default="wt,mut", help="which groups to fold: wt, mut, or both")
     ap.add_argument("--shard", default="0/1", help="k/n: fold every n-th sequence from k (parallel CPU jobs)")
+    ap.add_argument("--save-recycles", action="store_true",
+                    help="WT folds only: write the structure at each recycle, for the "
+                         "recycle-convergence floor comparable to ESMFold")
     a = ap.parse_args()
     run = Path(a.run_dir)
     if a.step == "msa":
         msa_step(run, a.colabfold_batch)
     else:
-        fold_step(run, a.colabfold_batch, a.data, a.wt_seeds, a.mut_models, a.wt_models, a.max_msa, a.shard, a.groups)
+        fold_step(run, a.colabfold_batch, a.data, a.wt_seeds, a.mut_models, a.wt_models,
+                  a.max_msa, a.shard, a.groups, a.save_recycles)
 
 
 if __name__ == "__main__":

@@ -4,8 +4,15 @@ WT sequences are folded --wt-reps times to measure the run-to-run noise floor. E
 has no dropout or sampling at inference, so replicates may come out identical; that is
 recorded, not assumed.
 
+Because that replicate floor is exactly zero, it cannot be compared against AlphaFold2's
+seed floor -- AF2 has a seed and ESMFold does not, so they are not the same quantity.
+--recycle-sweep gives a floor that DOES exist for both predictors: refold the same
+sequence at increasing recycle counts and measure how much the structure is still moving
+between consecutive recycles. AF2's equivalent is colabfold_batch --save-recycles.
+
 Writes  <out>/preds/esmfold/<seq_id>__rep<k>.pdb  (pLDDT 0-100 in B-factor)
         <out>/preds/esmfold/<seq_id>__rep<k>.json (ptm, mean pLDDT, runtime, settings)
+        <out>/preds/esmfold/<seq_id>__rec<N>.pdb  (--recycle-sweep: N recycles, WT only)
 
 Usage:  HF_HOME=... python run_esmfold.py --run-dir RUN_DIR [--wt-reps 3] [--device cpu]
 Works on CPU (laptop) and CUDA (Hoffman2).
@@ -32,7 +39,14 @@ def main() -> None:
     ap.add_argument("--threads", type=int, default=6)
     ap.add_argument("--lm-dtype", choices=["fp16", "bf16", "fp32"], default=None,
                     help="ESM-2 language-model precision (default fp16 on cuda, fp32 elsewhere)")
+    ap.add_argument("--recycle-sweep", default=None,
+                    help="comma-separated recycle counts, e.g. 0,1,2,3,4. WT sequences only. "
+                         "Gives the recycle-convergence floor, the one floor definition that "
+                         "also exists for AlphaFold2 (--save-recycles).")
+    ap.add_argument("--sweep-only", action="store_true",
+                    help="run only the recycle sweep, skipping the normal folds")
     args = ap.parse_args()
+    sweep = [int(x) for x in args.recycle_sweep.split(",")] if args.recycle_sweep else []
 
     torch.set_num_threads(args.threads)
     run = Path(args.run_dir)
@@ -53,15 +67,21 @@ def main() -> None:
     model = model.to(args.device).eval()
 
     for _, s in seqs.iterrows():
-        reps = args.wt_reps if s.variant == "WT" else 1
-        for k in range(1, reps + 1):
-            stem = f"{s.seq_id}__rep{k}"
+        # (stem, num_recycles) jobs for this sequence
+        jobs = []
+        if not args.sweep_only:
+            reps = args.wt_reps if s.variant == "WT" else 1
+            jobs += [(f"{s.seq_id}__rep{k}", NUM_RECYCLES) for k in range(1, reps + 1)]
+        if sweep and s.variant == "WT":
+            jobs += [(f"{s.seq_id}__rec{n}", n) for n in sweep]
+
+        for stem, n_rec in jobs:
             if (outdir / f"{stem}.pdb").exists():
                 continue
             t0 = time.time()
             ids = tok([s.sequence], return_tensors="pt", add_special_tokens=False)["input_ids"].to(args.device)
             with torch.no_grad():
-                out = model(ids, num_recycles=NUM_RECYCLES)
+                out = model(ids, num_recycles=n_rec)
             pdb = model.output_to_pdb(out)[0]
             # HF writes pLDDT in 0-1 into B-factor; rescale to 0-100 like ESM/AF2 do
             plddt_ca = out["plddt"][0, :, 1].float().cpu()  # atom37 index 1 = CA
@@ -73,9 +93,9 @@ def main() -> None:
                     ln = f"{ln[:60]}{b:6.2f}{ln[66:]}"
                 lines.append(ln)
             (outdir / f"{stem}.pdb").write_text("\n".join(lines) + "\n")
-            meta = dict(seq_id=s.seq_id, rep=k, predictor="esmfold", model="esmfold_v1",
+            meta = dict(seq_id=s.seq_id, stem=stem, predictor="esmfold", model="esmfold_v1",
                         ptm=float(out["ptm"]), mean_plddt=float(plddt_ca.mean()) * scale,
-                        num_recycles=NUM_RECYCLES, device=args.device, esm_dtype=esm_dtype,
+                        num_recycles=n_rec, device=args.device, esm_dtype=esm_dtype,
                         runtime_s=round(time.time() - t0, 2), torch=torch.__version__,
                         # full precision; the PDB B-factor column is rounded to 1 pLDDT unit
                         plddt_ca=[round(float(x) * scale, 3) for x in plddt_ca])
