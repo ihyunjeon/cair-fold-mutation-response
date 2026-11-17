@@ -16,7 +16,8 @@ Use it to write and debug your code. **Do not report any number from it.** It us
 reduced AF2 settings (one model, shallow MSA) to fit on a CPU.
 
 The real panel (`full_v1`: about 100 stratified mutants per protein, all 5 AF2 models, 5
-WT seeds) is folding on Hoffman2. It will arrive with **the same files, columns and
+WT seeds) is folding on Hoffman2 — the ESMFold arm is done, the AF2 arm is queued as of
+2026-11-16. It will arrive with **the same files, columns and
 layout**, so code that runs on `inputs/` runs on it unchanged. Write nothing that hardcodes
 a variant name, a row count or a protein list.
 
@@ -97,6 +98,28 @@ Consequences:
   Renumber the prediction first (add 301) before comparing it to a crystal.
 - In the tables, always join on `resid_uniprot`. Never join on row order.
 
+### 2b. Ubiquitin's C-terminal tail: drop residues 72-76 when you score
+
+Found 2026-11-16, and it changes every ubiquitin number in this task.
+
+Residues 72-76 of ubiquitin are a flexible tail, not part of the fold. Both predictors
+swing it about 1 Å **regardless of sequence** — at the worst recycle step residues 75 and
+76 move 1.124 Å and 1.297 Å while residues 1-71 move 0.0186 Å RMS. Any whole-chain RMSD
+on ubiquitin is therefore mostly tether, not structure: it inflates the noise floor
+roughly sixfold and buries the mutation signal underneath it.
+
+So for **both** `ubq_yeast` and `ubq_human`: superpose on the whole chain, then **score
+only residues 1-71**. PDZ3 has no such feature — use its whole chain, exclude nothing.
+
+This is not cosmetic. Dropping the tail moves the ubiquitin correlation between
+displacement and DMS score from rho = -0.254 (p = 0.012) to **rho = -0.344 (p = 5.7e-4)**,
+and leaves PDZ3 alone (-0.439 → -0.432) — which is exactly the signature you would
+predict for a sequence-independent artefact, and is why it is believed.
+
+Report both where it is cheap (a `core` and a `global` column side by side), so the
+contamination stays visible instead of being quietly cropped out. The **core** number is
+the one that goes on a slide.
+
 ---
 
 ## 3. Your task, in order
@@ -112,10 +135,22 @@ C-alpha and record global RMSD, per-residue displacement and per-residue ΔpLDDT
 **Step 2: the noise floor.** From the `wt_vs_wt` pairs, per protein × predictor: the
 distribution of RMSD and per-residue displacement (`geometry.noise_floor`). A mutant
 effect counts only if it clears this.
-> **Known:** ESMFold is deterministic. Its repeat folds are bit-identical, so its floor
-> is exactly 0. Your code must handle a zero floor (no division by 0, no log of 0). The
-> lead is deciding the ESMFold-appropriate floor; for now, report both predictors' floors
-> as measured and use the AF2 seed floor as the common reference.
+> **Settled 2026-11-16 — this replaces the earlier "the lead is deciding" note.**
+> ESMFold is deterministic: its replicate floor is exactly 0.0000 Å, so your code must
+> still survive a zero floor (no division by 0, no log of 0). But a zero is not a usable
+> reference frame, and the AF2 seed floor cannot be the common one either — ESMFold has
+> no seed, so it is not the same quantity.
+>
+> The shared floor is **recycle convergence**: refold the same sequence at increasing
+> recycle counts and take the C-alpha RMSD between *consecutive* counts. Both predictors
+> have this (ESMFold `--recycle-sweep`, AF2 `--save-recycles`). `pipeline/noise_floor.py`
+> computes it and writes `floors.csv` / `floors_core.csv`; **you do not need to run it** —
+> ask the lead for the current tables. Quote the `rmsd_plateau_max` column, not
+> `rmsd_mean`: the mean averages in early recycles that are nowhere near converged and
+> overstates the floor by about an order of magnitude.
+>
+> AF2's spread across models 1-5 is **not** a floor. Five models are five different
+> predictors, not one predictor being noisy. Report it if you like, but never divide by it.
 
 **Step 3: locality.** For each mutant: mean displacement inside vs outside an 8 Å shell
 around the mutated residue, measured on the WT structure (`geometry.locality_profile`).
@@ -141,7 +176,7 @@ RMSD flat but change contacts.
 - Crystal chains can be missing a terminal residue (5OXI and 4PIG chain A end at 75).
   `superpose` matches by number and handles it; report `n_matched`.
 
-**Deliverable for the rendering member.** For each 6-way pair, write
+**Deliverable: send these to the lead.** For each 6-way pair,
 `outputs/displacement_<protein>_<variant>.csv` with columns:
 
 ```
@@ -153,10 +188,17 @@ esm_mut,1,<float>
 ```
 
 `object` is one of `exp_mut`, `af_mut`, `esm_mut`: that structure's displacement against
-its own WT (exp_mut vs exp_wt, af_mut vs af_wt, esm_mut vs esm_wt), in UniProt
-numbering. The rendering member colors the 3D figures with this exact format, so don't change it.
-Also give them each predictor's noise-floor value (one number per protein × predictor)
-in `outputs/noise_floor.csv`; it sets the white point of the color scale.
+its own WT (exp_mut vs exp_wt, af_mut vs af_wt, esm_mut vs esm_wt), in UniProt numbering.
+These feed the 3D figures downstream, so keep the format exactly as written.
+
+`pipeline/make_render_inputs.py` already writes exactly this from a run's `sixway/`
+directory, and the `subset_v0` versions are generated. Use it rather than writing your
+own; if its output disagrees with your Step 7 numbers, that disagreement is a finding and
+the lead wants to hear about it before either is used.
+
+Send them to the lead, along with `outputs/noise_floor.csv` — one floor number per
+protein × predictor, the `rmsd_plateau_max` value (core for ubiquitin, whole chain for
+PDZ3).
 
 ---
 

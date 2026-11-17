@@ -1,0 +1,7 @@
+protein,predictor,floor_A,figure_scale_min_A,frame,scored_on,status
+pdz3_rat,esmfold,0.0102,0.0102,recycle_plateau_max,whole_chain,final
+pdz3_rat,alphafold2,,0.0102,recycle_plateau_max,whole_chain,pending_cluster_run
+ubq_human,esmfold,0.0044,0.0429,recycle_plateau_max,core_1_71,final
+ubq_human,alphafold2,0.0429,0.0429,seed_pair_subset_v0,core_1_71,provisional
+ubq_yeast,esmfold,0.0353,0.0353,recycle_plateau_max,core_1_71,final
+ubq_yeast,alphafold2,,0.0353,recycle_plateau_max,core_1_71,pending_cluster_run

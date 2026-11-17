@@ -97,8 +97,8 @@ and writes to `outputs/`, so the full run re-renders with one command.
 Size: slides are 16:9. `ray 2400,1350` then `png <file>.png, dpi=300` works well.
 
 **Step 4: displacement coloring (the primary figure).** Color each mutant by how far each
-residue moved from its own wild type. The analysis member delivers this as
-`outputs/displacement_<protein>_<variant>.csv`:
+residue moved from its own wild type. These are already in your folder, under
+`inputs/displacement/` — read its `README.md` first:
 
 ```
 object,resid_uniprot,displacement_A
@@ -121,19 +121,24 @@ for obj, g in d.groupby("object"):
 Rules for the color scale:
 - **the same `minimum`/`maximum` on every panel of a figure** (experimental, AF2, ESMFold).
   Otherwise a 0.2 Å wiggle and a 2 Å shift look equally red.
-- `minimum` = the **noise floor** (from the analysis member's `outputs/noise_floor.csv`).
-  Anything at or below what the predictor does when nothing changes stays white.
+- `minimum` = `figure_scale_min_A` for that protein from
+  `inputs/displacement/noise_floor.csv` — one value per protein, the same on all three
+  panels. Anything at or below what the predictor does when nothing changes stays white.
+- For **ubiquitin only**, residues 72-76 are a flexible tail that both predictors swing
+  about 1 Å whatever the sequence is. They will light up red on every panel and mean
+  nothing. Colour them grey like a missing residue, and say so in the caption.
 - residues missing from a structure (e.g. 5OXI and 4PIG chain A end at residue 75) get
   `b = -1`. Color them grey, not white, so "missing" never reads as "didn't move".
 - include a color bar with units (Å) in the figure or on the slide.
 
-*Until the CSVs exist*, build and test this code on the pLDDT already in the B-factor
-column of `af_mut`/`esm_mut`, then swap in the real file. Don't compute displacement
-yourself in PyMOL for the figures. One source of numbers for the whole project.
+The `exp_mut` and `esm_mut` columns are final; `af_mut` is from the development subset
+and will be regenerated when the cluster run lands, so build and check everything now and
+expect only the AF2 panel to be redrawn. Don't compute displacement yourself in PyMOL for
+the figures. One source of numbers for the whole project.
 
 **Step 5: the responder panel (from full_v1).** For each protein, the strongest and
-weakest responders (picked by the analysis member from the full run), rendered with the
-same house style, camera and color scale. These are the slides the talk is built around.
+weakest responders (the lead picks them from the full run and sends you the list),
+rendered with the same house style, camera and color scale. These are the slides the talk is built around.
 
 ---
 
